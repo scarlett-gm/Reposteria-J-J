@@ -16,29 +16,41 @@
         <div class="card venta-form-card">
             <h2>Registrar Venta</h2>
             
-            <form method="post" action="#">
+            <form method="post" action="{% url 'ventas' %}">
                 {% csrf_token %}
 
                 <div class="form-group">
                     <label for="vendedor">Vendedor:</label>
                     <select id="vendedor" name="vendedor" required>
                         <option value="">--- Seleccione Vendedor ---</option>
-                        <option value="1">Vendedor A (Juan)</option>
-                        <option value="2">Vendedor B (María)</option>
+                        {% for v in vendedores %}
+                            <option value="{{ v.id }}">{{ v.nombre }}</option>
+                        {% empty %}
+                            <option value="">No hay vendedores</option>
+                        {% endfor %}
                     </select>
                 </div>
                 
                 <h3>Detalles del Pedido:</h3>
+
+                <template id="producto-options">
+                    <option value="">--- Seleccione Producto ---</option>
+                    {% for p in productos %}
+                        <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} (C${{ p.precio_venta }})</option>
+                    {% endfor %}
+                </template>
+
                 <div id="productos-container">
                     <div class="producto-row">
                         <select name="producto_id" required>
-                            <option value="">--- Seleccione Producto ---</option>
-                            <option value="1" data-precio="1.50">Clásico Croissant (C$1.50)</option>
-                            <option value="2" data-precio="3.50">Torta de Chocolate (C$3.50)</option>
-                            <option value="3" data-precio="5.00">Pan de Mantequilla (C$5.00)</option>
+                            {% for p in productos %}
+                                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} (C${{ p.precio_venta }})</option>
+                            {% empty %}
+                                <option value="">No hay productos</option>
+                            {% endfor %}
                         </select>
                         <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
-                        <span class="subtotal-display">C$1.50</span>
+                        <span class="subtotal-display">C$0.00</span>
                         <button type="button" class="remove-product-btn" onclick="removeProductRow(this)">X</button>
                     </div>
                 </div>
@@ -49,7 +61,7 @@
 
                 <div class="venta-summary">
                     <div class="total-label">TOTAL A PAGAR:</div>
-                    <div id="total-venta" class="total-value">C$1.50</div>
+                    <div id="total-venta" class="total-value">C$0.00</div>
                 </div>
 
                 <button type="submit" class="submit-venta-btn">
@@ -63,25 +75,34 @@
         const container = document.getElementById('productos-container');
         const addBtn = document.getElementById('add-product-btn');
         const totalDisplay = document.getElementById('total-venta');
-        
-        // Plantilla HTML para una nueva fila (debe reflejar los datos simulados en el HTML)
-        const productRowTemplate = `
-            <div class="producto-row">
-                <select name="producto_id" required>
-                    <option value="">--- Seleccione Producto ---</option>
-                    <option value="1" data-precio="1.50">Clásico Croissant (C$1.50)</option>
-                    <option value="2" data-precio="3.50">Torta de Chocolate (C$3.50)</option>
-                    <option value="3" data-precio="5.00">Pan de Mantequilla (C$5.00)</option>
-                </select>
-                <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
-                <span class="subtotal-display">C$0.00</span>
-                <button type="button" class="remove-product-btn" onclick="removeProductRow(this)">X</button>
-            </div>
-        `;
+
+        // Guardar opciones generadas por el servidor para usar al añadir filas
+        document.addEventListener('DOMContentLoaded', () => {
+            window.productOptionsHTML = document.getElementById('producto-options') ? document.getElementById('producto-options').innerHTML : '';
+            // Inicializar listeners de fila existente y calcular total
+            container.querySelectorAll('.producto-row').forEach(attachRowListeners);
+            calculateTotal();
+        });
+
+        // Crear plantilla de fila usando las opciones del servidor
+        function createProductRowHTML() {
+            const options = window.productOptionsHTML || '<option value="">No hay productos</option>';
+            return `
+                <div class="producto-row">
+                    <select name="producto_id" required>
+                        ${options}
+                    </select>
+                    <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                    <span class="subtotal-display">C$0.00</span>
+                    <button type="button" class="remove-product-btn" onclick="removeProductRow(this)">X</button>
+                </div>
+            `;
+        }
 
         addBtn.addEventListener('click', () => {
-            container.insertAdjacentHTML('beforeend', productRowTemplate);
-            attachRowListeners(container.lastElementChild);
+            container.insertAdjacentHTML('beforeend', createProductRowHTML());
+            const newRow = container.lastElementChild;
+            attachRowListeners(newRow);
             calculateTotal();
         });
 
@@ -100,7 +121,7 @@
             const subtotalDisplay = row.querySelector('.subtotal-display');
 
             const selectedOption = select.options[select.selectedIndex];
-            const price = parseFloat(selectedOption.getAttribute('data-precio')) || 0.00;
+            const price = parseFloat(selectedOption?.getAttribute('data-precio')) || 0.00;
             const quantity = parseInt(input.value) || 0;
             
             const subtotal = price * quantity;
@@ -119,15 +140,15 @@
         }
 
         function attachRowListeners(row) {
-            const elements = row.querySelectorAll('select, input');
-            elements.forEach(element => {
-                element.addEventListener('change', calculateTotal);
-                element.addEventListener('input', calculateTotal);
-            });
+            const select = row.querySelector('select[name="producto_id"]');
+            const input = row.querySelector('input[name="cantidad"]');
+            if (select) select.addEventListener('change', () => { calculateRowTotal(row); calculateTotal(); });
+            if (input) {
+                input.addEventListener('input', () => { calculateRowTotal(row); calculateTotal(); });
+                input.addEventListener('change', () => { calculateRowTotal(row); calculateTotal(); });
+            }
+            // calcular subtotal inicial para la fila
+            calculateRowTotal(row);
         }
-        
-        container.querySelectorAll('.producto-row').forEach(attachRowListeners);
-        calculateTotal();
-
     </script>
 {% endblock %}

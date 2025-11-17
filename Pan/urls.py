@@ -7,4 +7,5 @@ urlpatterns = [
     path('ventas/', views.ventas, name='ventas'),  # Nueva ruta para ventas
     path('compras/', views.Compras, name='Compras'),
     path('produccion/', views.produccion, name='produccion'),  # Ruta de producción (temporalmente apunta a home)
+    path('productos/', views.listar_productos, name='productos'),  # Ruta de producción (temporalmente apunta a home)
 ]

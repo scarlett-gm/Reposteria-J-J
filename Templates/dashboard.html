@@ -5,10 +5,14 @@
 {% block content %}
     <header class="header">
         <div class="actions">
-            <select>
-                <option>Hoy</option>
-                <option>Últimos 7 días</option>
-            </select>
+            <form method="get" style="display:flex; gap:12px; align-items:center;">
+                <select name="range" onchange="this.form.submit()">
+                    <option value="Hoy" {% if range_selected == 'Hoy' %}selected{% endif %}>Hoy</option>
+                    <option value="7" {% if range_selected == '7' %}selected{% endif %}>Últimos 7 días</option>
+                </select>
+                <noscript><button type="submit" class="new-order-btn">Aplicar</button></noscript>
+            </form>
+
            <a href="{% url 'ventas' %}" class="new-order-btn">
                 <i class="bi bi-plus-square-fill"></i> Nueva venta
             </a>
@@ -17,20 +21,20 @@
     
     <section class="kpi-cards">
         <div class="card kpi-card">
-            <div class="kpi-title">Total de Ventas (Hoy)</div>
-            <div class="kpi-value">C$1,250</div>
+            <div class="kpi-title">Total de Ventas ({% if range_selected == '7' %}Últimos 7 días{% else %}Hoy{% endif %})</div>
+            <div class="kpi-value">C${{ ingresos_total|floatformat:2 }}</div>
             <div class="kpi-change positive">+5.2%</div>
         </div>
 
         <div class="card kpi-card">
             <div class="kpi-title">Productos Vendidos</div>
-            <div class="kpi-value">142</div>
+            <div class="kpi-value">{{ unidades_vendidas }}</div>
             <div class="kpi-change positive">+10.3%</div>
         </div>
 
         <div class="card kpi-card low-stock-alert">
             <div class="kpi-title">Insumos con Bajo Stock</div>
-            <div class="kpi-value warning">4</div>
+            <div class="kpi-value warning">{{ low_stock_count }}</div>
             <div class="kpi-action-req">Acción requerida</div>
         </div>
     </section>
@@ -40,11 +44,28 @@
             <div class="card sales-overview">
                 <h2>Resumen de Ventas</h2>
                 <div class="last-days">Últimos 7 días</div>
-                <div class="total-sales-amount">C$9,000</div>
-                <div class="chart-placeholder"></div>
-                <div class="chart-labels">
-                    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
-                </div>
+
+                <!-- mostrar el total de ingresos de los últimos 7 días -->
+                <div class="total-sales-amount">C${{ ingresos_last7_total|floatformat:2 }}</div>
+
+                <!-- Tabla con ingresos por día (últimos 7 días) -->
+                <table id="sales-table" class="compras-table" style="margin-top:12px;">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Ingresos (C$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-table-body">
+                        <!-- filas rellenadas por script -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total</th>
+                            <th>C${{ ingresos_last7_total|floatformat:2 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
 
             <div class="card today-orders">
@@ -54,14 +75,21 @@
                         <tr>
                             <th>ID DE VENTA</th>
                             <th>VENDEDOR</th>
-                            <th>TOTAL</th>
+                            <th style="text-align:right">TOTAL</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>#JJ1025</td><td>Ana Torres</td><td>C$25.50</td></tr>
-                        <tr><td>#JJ1024</td><td>Carlos Gomez</td><td>C$42.00</td></tr>
-                        <tr><td>#JJ1023</td><td>Sofia Perez</td><td>C$15.75</td></tr>
-                        <tr><td>#JJ1022</td><td>Luis Fernandez</td><td>C$31.20</td></tr>
+                        {% if ventas_hoy %}
+                            {% for v in ventas_hoy %}
+                                <tr>
+                                    <td>#{{ v.venta_id }}</td>
+                                    <td>{{ v.vendedor }}</td>
+                                    <td style="text-align:right">C${{ v.ingreso|floatformat:2 }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="3">No hay ventas hoy.</td></tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -70,21 +98,52 @@
         <section class="side-stats-area">
             <div class="card top-sellers">
                 <h2>Top Vendidos</h2>
-                <ul>
-                    <li><div>Pan de Mantequilla <span>32 unidades vendidas</span></div></li>
-                    <li><div>Pan Dulce <span>26 unidades vendidas</span></div></li>
-                    <li><div>Pastel de Chocolate <span>21 unidades vendidas</span></div></li>
-                    <li><div>Picos <span>18 unidades vendidas</span></div></li>
-                </ul>
+                {% if top_sellers %}
+                    <ul>
+                        {% for p in top_sellers %}
+                            <li>
+                                <div>{{ p.nombre }} <span>{{ p.vendidos }} unidades</span></div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No hay ventas en el período seleccionado.</p>
+                {% endif %}
             </div>
 
             <div class="card inventory-alerts">
                 <h2>Alertas de Inventario</h2>
-                <div class="alert-item"><div>Harina de Trigo <span class="stock-qty">5 kg </span></div><button class="restock-btn">Restock</button></div>
-                <div class="alert-item"><div>Chocolate Belga <span class="stock-qty">2 kg </span></div><button class="restock-btn">Restock</button></div>
-                <div class="alert-item"><div>Fresas Frescas <span class="stock-qty">1 caja </span></div><button class="restock-btn">Restock</button></div>
-                <div class="alert-item"><div>Extracto de Vainilla <span class="stock-qty">1 botella </span></div><button class="restock-btn">Restock</button></div>
+                {% if low_stock_items %}
+                    {% for insumo in low_stock_items %}
+                        <div class="alert-item">
+                            <div>{{ insumo.nombre }} <span class="stock-qty">{{ insumo.stock|floatformat:0 }} Unidades</span></div>
+                            <button class="restock-btn">Restock</button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="insumos-container"><p>No hay insumos con stock menor a 10.</p></div>
+                {% endif %}
             </div>
         </section>
     </div>
+
+    <!-- reemplazamos la gráfica por un script que rellena la tabla -->
+    <script>
+        (function(){
+            const labels = {{ sales_chart_labels_json|safe }};
+            const data = {{ sales_chart_values_json|safe }};
+            const tbody = document.getElementById('sales-table-body');
+
+            if (!Array.isArray(labels) || !Array.isArray(data)) return;
+
+            for (let i = 0; i < labels.length; i++) {
+                const row = document.createElement('tr');
+                const d = new Date(labels[i]);
+                const dateLabel = isNaN(d.getTime()) ? labels[i] : d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+                const val = (data[i] !== undefined && data[i] !== null) ? Number(data[i]) : 0;
+                row.innerHTML = `<td>${dateLabel}</td><td>C$${val.toFixed(2)}</td>`;
+                tbody.appendChild(row);
+            }
+        })();
+    </script>
 {% endblock %}

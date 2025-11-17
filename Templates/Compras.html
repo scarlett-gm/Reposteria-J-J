@@ -5,6 +5,25 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'Compras.css' %}">
+
+    {# Plantillas ocultas con las opciones generadas en el servidor para usar en JS dinámico #}
+    <template id="insumo-options">
+        <option value="">--- Seleccione Insumo ---</option>
+        {% for ins in insumos %}
+            <option value="{{ ins.id }}">{{ ins.nombre }}</option>
+        {% empty %}
+            <option value="">No hay insumos</option>
+        {% endfor %}
+    </template>
+
+    <template id="producto-options">
+        <option value="">--- Seleccione Producto ---</option>
+        {% for p in productos_bebida %}
+            <option value="{{ p.id }}">{{ p.nombre }}</option>
+        {% empty %}
+            <option value="">No hay productos tipo bebida</option>
+        {% endfor %}
+    </template>
     
     <header class="header">
         <div class="header-title">
@@ -27,25 +46,29 @@
 
             <div id="insumo-form" class="compra-form-container active-form">
                 <h2>Compra de Insumos</h2>
-                <form method="post" action="#">
+                <form method="post" action="{% url 'Compras' %}">
                     {% csrf_token %}
 
                     <div class="form-group">
                         <label for="insumo_proveedor">Proveedor:</label>
                         <select id="insumo_proveedor" name="proveedor" required>
                             <option value="">--- Seleccione Proveedor ---</option>
-                            <option value="1">Proveedor A (Harinas)</option>
-                            <option value="2">Proveedor B (Lácteos)</option>
+                            {% for prov in proveedores_insumos %}
+                                <option value="{{ prov.id }}">{{ prov.nombre }}</option>
+                            {% empty %}
+                                <option value="">No hay proveedores de insumos</option>
+                            {% endfor %}
                         </select>
                     </div>
 
                     <div id="insumos-container">
                         <div class="item-row">
                             <select name="insumo_id" required>
-                                <option value="">--- Seleccione Insumo ---</option>
-                                <option value="1">Harina de Trigo (kg)</option>
-                                <option value="2">Azúcar Blanca (lb)</option>
-                                <option value="3">Levadura (g)</option>
+                                {% for ins in insumos %}
+                                    <option value="{{ ins.id }}">{{ ins.nombre }}</option>
+                                {% empty %}
+                                    <option value="">No hay insumos</option>
+                                {% endfor %}
                             </select>
                             <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
                             <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
@@ -70,24 +93,29 @@
 
             <div id="producto-form" class="compra-form-container" style="display: none;">
                 <h2>Compra de Productos para Reventa</h2>
-                <form method="post" action="#">
+                <form method="post" action="{% url 'Compras' %}">
                     {% csrf_token %}
 
                     <div class="form-group">
                         <label for="producto_proveedor">Proveedor:</label>
                         <select id="producto_proveedor" name="proveedor" required>
                             <option value="">--- Seleccione Proveedor ---</option>
-                            <option value="3">Proveedor C (Bebidas)</option>
-                            <option value="4">Proveedor D (Empacados)</option>
+                            {% for prov in proveedores_bebidas %}
+                                <option value="{{ prov.id }}">{{ prov.nombre }}</option>
+                            {% empty %}
+                                <option value="">No hay proveedores de bebidas</option>
+                            {% endfor %}
                         </select>
                     </div>
 
                     <div id="productos-container">
                         <div class="item-row">
                             <select name="producto_id" required>
-                                <option value="">--- Seleccione Producto ---</option>
-                                <option value="10">Agua Mineral (Unidad)</option>
-                                <option value="11">Jugo de Naranja (Unidad)</option>
+                                {% for p in productos_bebida %}
+                                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                                {% empty %}
+                                    <option value="">No hay productos tipo bebida</option>
+                                {% endfor %}
                             </select>
                             <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
                             <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
@@ -113,8 +141,76 @@
         </div>
     </section>
 
+    <!-- Tabla de Compras de Insumos -->
+    <div id="tabla-insumos" class="compras-container">
+      <h2>Compras - Insumos</h2>
+
+      {% if compras_insumos %}
+      <table class="compras-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Insumo</th>
+            <th>Cantidad</th>
+            <th>Precio unitario</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in compras_insumos %}
+          <tr>
+            <td>{{ c.fecha|date:"Y-m-d H:i" }}</td>
+            <td>{{ c.proveedor.nombre }}</td>
+            <td>{{ c.insumo.nombre }}</td>
+            <td>{{ c.cantidad }}</td>
+            <td>{{ c.precio_unitario }}</td>
+            <td>{{ c.cantidad|floatformat:2 }} x {{ c.precio_unitario|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No hay registros de compras de insumos.</p>
+      {% endif %}
+    </div>
+
+    <!-- Tabla de Compras de Productos/Bebidas -->
+    <div id="tabla-productos" class="compras-container" style="display:none;">
+      <h2>Compras - Productos / Bebidas</h2>
+
+      {% if compras_productos %}
+      <table class="compras-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio unitario</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in compras_productos %}
+          <tr>
+            <td>{{ p.fecha|date:"Y-m-d H:i" }}</td>
+            <td>{{ p.proveedor.nombre }}</td>
+            <td>{{ p.producto.nombre }}</td>
+            <td>{{ p.cantidad }}</td>
+            <td>{{ p.precio_unitario }}</td>
+            <td>{{ p.cantidad|floatformat:2 }} x {{ p.precio_unitario|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No hay registros de compras de productos.</p>
+      {% endif %}
+    </div>
+
     <script>
-        // Lógica para alternar entre formularios (Insumo/Producto)
+        // Lógica para alternar entre formularios (Insumo/Producto) y sus tablas
         window.showForm = function(formId) {
             const forms = document.querySelectorAll('.compra-form-container');
             const tabs = document.querySelectorAll('.tab-button');
@@ -124,78 +220,99 @@
 
             document.getElementById(formId).style.display = 'block';
             
-            // Encuentra el botón de la pestaña y añade la clase 'active'
             let activeTab;
             if (formId === 'insumo-form') {
                 activeTab = tabs[0];
             } else {
                 activeTab = tabs[1];
             }
-            activeTab.classList.add('active');
+            if (activeTab) activeTab.classList.add('active');
+
+            // Mostrar/ocultar tablas según formulario activo
+            const tablaInsumos = document.getElementById('tabla-insumos');
+            const tablaProductos = document.getElementById('tabla-productos');
+            if (tablaInsumos && tablaProductos) {
+                if (formId === 'insumo-form') {
+                    tablaInsumos.style.display = 'block';
+                    tablaProductos.style.display = 'none';
+                } else {
+                    tablaInsumos.style.display = 'none';
+                    tablaProductos.style.display = 'block';
+                }
+            }
+        }
+
+        // Asegurar estado inicial coherente al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTabButton = document.querySelector('.tab-button.active');
+            if (activeTabButton) {
+                const onclick = activeTabButton.getAttribute('onclick') || "showForm('insumo-form')";
+                const match = onclick.match(/'([^']+)'/);
+                const formId = match ? match[1] : 'insumo-form';
+                showForm(formId);
+            } else {
+                showForm('insumo-form');
+            }
+
+            // Preparar opciones dinámicas usando los <template>
+            window.insumoOptionsHTML = document.getElementById('insumo-options') ? document.getElementById('insumo-options').innerHTML : '';
+            window.productoOptionsHTML = document.getElementById('producto-options') ? document.getElementById('producto-options').innerHTML : '';
+        });
+
+        // ----------------------------------------------------
+        // Dinámico: Insumos
+        // ----------------------------------------------------
+        const addInsumoBtn = document.getElementById('add-insumo-btn');
+        const insumoContainer = document.getElementById('insumos-container');
+        const createInsumoRow = () => {
+            const options = window.insumoOptionsHTML || '<option value="">No hay insumos</option>';
+            return `
+                <div class="item-row">
+                    <select name="insumo_id" required>
+                        ${options}
+                    </select>
+                    <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                    <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
+                    <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
+                </div>
+            `;
+        };
+        if (addInsumoBtn && insumoContainer) {
+            addInsumoBtn.addEventListener('click', () => insumoContainer.insertAdjacentHTML('beforeend', createInsumoRow()));
         }
 
         // ----------------------------------------------------
-        // Lógica de JavaScript para el Formulario Dinámico (Insumos)
+        // Dinámico: Productos
         // ----------------------------------------------------
-        
-        const insumoContainer = document.getElementById('insumos-container');
-        const addInsumoBtn = document.getElementById('add-insumo-btn');
-        
-        // Plantilla para nueva fila de Insumo (debe coincidir con la fila inicial)
-        const insumoRowTemplate = `
-            <div class="item-row">
-                <select name="insumo_id" required>
-                    <option value="">--- Seleccione Insumo ---</option>
-                    <option value="1">Harina de Trigo (kg)</option>
-                    <option value="2">Azúcar Blanca (lb)</option>
-                    <option value="3">Levadura (g)</option>
-                </select>
-                <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
-                <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
-                <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
-            </div>
-        `;
-
-        addInsumoBtn.addEventListener('click', () => {
-            insumoContainer.insertAdjacentHTML('beforeend', insumoRowTemplate);
-        });
-        
-        // ----------------------------------------------------
-        // Lógica de JavaScript para el Formulario Dinámico (Productos)
-        // ----------------------------------------------------
-        
-        const productoContainer = document.getElementById('productos-container');
         const addProductoBtn = document.getElementById('add-producto-btn');
-        
-        // Plantilla para nueva fila de Producto (debe coincidir con la fila inicial)
-        const productoRowTemplate = `
-            <div class="item-row">
-                <select name="producto_id" required>
-                    <option value="">--- Seleccione Producto ---</option>
-                    <option value="10">Agua Mineral (Unidad)</option>
-                    <option value="11">Jugo de Naranja (Unidad)</option>
-                </select>
-                <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
-                <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
-                <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
-            </div>
-        `;
-
-        addProductoBtn.addEventListener('click', () => {
-            productoContainer.insertAdjacentHTML('beforeend', productoRowTemplate);
-        });
+        const productoContainer = document.getElementById('productos-container');
+        const createProductoRow = () => {
+            const options = window.productoOptionsHTML || '<option value="">No hay productos</option>';
+            return `
+                <div class="item-row">
+                    <select name="producto_id" required>
+                        ${options}
+                    </select>
+                    <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                    <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
+                    <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
+                </div>
+            `;
+        };
+        if (addProductoBtn && productoContainer) {
+            addProductoBtn.addEventListener('click', () => productoContainer.insertAdjacentHTML('beforeend', createProductoRow()));
+        }
 
         // Función para eliminar filas (compartida por ambos formularios)
         window.removeItemRow = function(button) {
-            const container = button.closest('.compra-form-container').querySelector('.item-row').parentElement;
+            const compraForm = button.closest('.compra-form-container');
+            const container = compraForm ? compraForm.querySelector('#insumos-container, #productos-container') : null;
             
-            // Se asegura de que siempre quede al menos una fila en su respectivo contenedor
-            if (container.querySelectorAll('.item-row').length > 1) {
+            if (container && container.querySelectorAll('.item-row').length > 1) {
                 button.closest('.item-row').remove();
             } else {
                 alert("Debe haber al menos un ítem para registrar la compra.");
             }
         };
-
     </script>
 {% endblock %}

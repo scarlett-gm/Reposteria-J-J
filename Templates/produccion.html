@@ -13,16 +13,21 @@
     <section class="produccion-area">
         <div class="card produccion-form-card">
             
-            <form method="post" action="#">
+            <form method="post" action="{% url 'produccion' %}">
                 {% csrf_token %}
 
                 <div class="form-group">
                     <label for="producto_a_producir">Producto a Fabricar:</label>
                     <select id="producto_a_producir" name="producto_id" required onchange="loadRecipe()">
                         <option value="">--- Seleccione Producto ---</option>
-                        <option value="1" data-insumos='[{"nombre": "Harina de Trigo", "unidad": "kg", "uso": 0.5}, {"nombre": "Azúcar", "unidad": "kg", "uso": 0.2}]'>Croissant Clásico</option>
-                        <option value="2" data-insumos='[{"nombre": "Harina de Trigo", "unidad": "kg", "uso": 0.3}, {"nombre": "Chocolate Belga", "unidad": "g", "uso": 150}]'>Pastel de Chocolate</option>
-                        <option value="3" data-insumos='[{"nombre": "Azúcar", "unidad": "kg", "uso": 0.4}, {"nombre": "Fresa Fresca", "unidad": "caja", "uso": 0.1}]'>Muffin de Fresa</option>
+                        {% for p in productos_pan %}
+                            {# construimos data-recipe con los insumos del producto usando ProductoInsumo relacionado #}
+                            <option value="{{ p.id }}" data-recipe='[
+                                {% for pi in p.productoinsumo_set.all %}
+                                    {"insumo":"{{ pi.insumo.nombre|escapejs }}","cantidad_utilizada":"{{ pi.cantidad_utilizada }}"}{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            ]'>{{ p.nombre }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
@@ -50,70 +55,66 @@
     </section>
 
     <script>
-        // Función para cargar la "receta" (ProductoInsumo) del producto seleccionado
         function loadRecipe() {
             const select = document.getElementById('producto_a_producir');
-            const selectedOption = select.options[select.selectedIndex];
-            const insumosData = selectedOption.getAttribute('data-insumos');
-            
-            if (insumosData) {
-                // Guarda la receta base en el DOM o en una variable global
-                select.setAttribute('data-current-recipe', insumosData);
+            const selected = select.options[select.selectedIndex];
+            const recipe = selected ? selected.getAttribute('data-recipe') : null;
+            if (recipe) {
+                select.setAttribute('data-current-recipe', recipe);
             } else {
                 select.removeAttribute('data-current-recipe');
             }
-            
-            // Recalcula los insumos con la nueva receta
             calculateInsumos();
         }
 
-        // Función para calcular y mostrar la cantidad total de insumos
         function calculateInsumos() {
             const select = document.getElementById('producto_a_producir');
-            const inputCantidad = document.getElementById('cantidad_a_producir');
+            const cantidadInput = document.getElementById('cantidad_a_producir');
             const insumosDiv = document.getElementById('insumos-requeridos');
             const submitBtn = document.getElementById('submit-btn');
 
-            const cantidadLote = parseInt(inputCantidad.value) || 0;
-            const insumosDataString = select.getAttribute('data-current-recipe');
-            
-            insumosDiv.innerHTML = '';
-            submitBtn.disabled = true; // Deshabilita por defecto
+            const cantidadLote = parseInt(cantidadInput.value) || 0;
+            const recipeStr = select.getAttribute('data-current-recipe');
 
-            if (cantidadLote > 0 && insumosDataString) {
+            insumosDiv.innerHTML = '';
+            submitBtn.disabled = true;
+
+            if (cantidadLote > 0 && recipeStr) {
                 try {
-                    const recetaBase = JSON.parse(insumosDataString);
+                    const receta = JSON.parse(recipeStr);
+                    if (!receta.length) {
+                        insumosDiv.innerHTML = '<p class="text-muted">No hay insumos definidos para este producto.</p>';
+                        return;
+                    }
+
                     let html = '<ul class="insumos-list">';
-                    
-                    recetaBase.forEach(insumo => {
-                        // Calcula el uso total (uso por unidad * cantidad del lote)
-                        const cantidadTotal = insumo.uso * cantidadLote;
-                        
+                    receta.forEach(item => {
+                        const uso = parseFloat(item.cantidad_utilizada) || 0;
+                        const totalUso = uso * cantidadLote;
                         html += `
                             <li>
-                                <span class="insumo-name">${insumo.nombre}:</span>
-                                <span class="insumo-qty">${cantidadTotal.toFixed(2)} ${insumo.unidad}</span>
+                                <span class="insumo-name">${item.insumo}:</span>
+                                <span class="insumo-qty">${totalUso.toFixed(2)}</span>
                             </li>
                         `;
                     });
-
-                    html += '</ul><div class="alert-info">⚠️ Esta es la cantidad total de insumos que se consumirá del inventario.</div>';
+                    html += '</ul><div class="alert-info">⚠️ Esta es la cantidad total de insumos que se consumirá del inventario al producir este lote.</div>';
                     insumosDiv.innerHTML = html;
-                    submitBtn.disabled = false; // Habilita si la receta y la cantidad son válidas
-
+                    submitBtn.disabled = false;
                 } catch (e) {
-                    console.error("Error al parsear datos de insumos:", e);
+                    console.error('Error parseando receta:', e);
                     insumosDiv.innerHTML = '<p class="text-error">Error al cargar la receta. Verifique la selección.</p>';
                 }
             } else if (select.value) {
-                 insumosDiv.innerHTML = '<p class="text-muted">Ingrese una cantidad válida mayor a 0.</p>';
+                insumosDiv.innerHTML = '<p class="text-muted">Ingrese una cantidad válida mayor a 0.</p>';
             } else {
                 insumosDiv.innerHTML = '<p class="text-muted">Seleccione un producto y la cantidad para ver los insumos necesarios.</p>';
             }
         }
-        
-        // Inicializa el formulario al cargar la página
-        document.addEventListener('DOMContentLoaded', loadRecipe);
 
+        document.addEventListener('DOMContentLoaded', function() {
+            // inic.
+            loadRecipe();
+        });
     </script>
 {% endblock %}

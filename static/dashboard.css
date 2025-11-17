@@ -284,3 +284,81 @@ body {
 .restock-btn:hover {
     background-color: #d8896d;
 }
+
+/* Estilos para la tabla "Resumen de Ventas" (sales-overview) */
+#sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-card-bg);
+    margin-top: 12px;
+    font-size: 0.95rem;
+    /* quitar sombras y bordes redondeados para que sea consistente con today-orders */
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+}
+
+/* Cabecera similar a today-orders */
+#sales-table thead th {
+    color: var(--color-text-gray);
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    background: transparent;
+}
+
+/* Celdas y separación entre filas como en today-orders */
+#sales-table tbody td,
+#sales-table tfoot th,
+#sales-table tfoot td {
+    padding: 12px 10px;
+    color: var(--color-text-dark);
+    vertical-align: middle;
+    border-bottom: 1px solid #f9f9f9;
+}
+
+/* Alineado de montos a la derecha */
+#sales-table tbody td:nth-child(2),
+#sales-table thead th:nth-child(2),
+#sales-table tfoot th:nth-child(2),
+#sales-table tfoot td:nth-child(2) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Filas separadas como en today-orders */
+#sales-table tbody tr:not(:last-child) {
+    border-bottom: 1px solid #f9f9f9;
+}
+
+/* Pie de tabla (Total) */
+#sales-table tfoot {
+    background: transparent;
+}
+
+#sales-table tfoot th,
+#sales-table tfoot td {
+    padding: 12px 10px;
+    font-weight: 700;
+    color: var(--color-text-dark);
+    border-top: 2px solid #eee;
+}
+
+/* Responsive: envolver la tabla en scroll horizontal en pantallas pequeñas */
+@media (max-width: 720px) {
+    #sales-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    #sales-table thead th, #sales-table tbody td {
+        padding: 10px 12px;
+    }
+}
+
+/* Pequeño ajuste visual para la sección sales-overview */
+.sales-overview .total-sales-amount {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
