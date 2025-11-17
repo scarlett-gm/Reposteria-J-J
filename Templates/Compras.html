@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registrar Compras | Panadería J&J{% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'Compras.css' %}">
+    
+    <header class="header">
+        <div class="header-title">
+            <h1>Registro de Compras</h1>
+            <p>Seleccione el tipo de compra: Insumos o Bebidas.</p>
+        </div>
+    </header>
+
+    <section class="compra-area">
+        <div class="card compra-selection-card">
+            
+            <div class="tabs">
+                <button type="button" class="tab-button active" onclick="showForm('insumo-form')">
+                    <i class="bi bi-box-seam"></i> Comprar Insumo 
+                </button>
+                <button type="button" class="tab-button" onclick="showForm('producto-form')">
+                    <i class="bi bi-cup-hot"></i> Comprar Bebida
+                </button>
+            </div>
+
+            <div id="insumo-form" class="compra-form-container active-form">
+                <h2>Compra de Insumos</h2>
+                <form method="post" action="#">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="insumo_proveedor">Proveedor:</label>
+                        <select id="insumo_proveedor" name="proveedor" required>
+                            <option value="">--- Seleccione Proveedor ---</option>
+                            <option value="1">Proveedor A (Harinas)</option>
+                            <option value="2">Proveedor B (Lácteos)</option>
+                        </select>
+                    </div>
+
+                    <div id="insumos-container">
+                        <div class="item-row">
+                            <select name="insumo_id" required>
+                                <option value="">--- Seleccione Insumo ---</option>
+                                <option value="1">Harina de Trigo (kg)</option>
+                                <option value="2">Azúcar Blanca (lb)</option>
+                                <option value="3">Levadura (g)</option>
+                            </select>
+                            <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                            <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
+                            <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="add-insumo-btn" class="add-item-btn">
+                        <i class="bi bi-plus-square-fill"></i> Añadir Otro Insumo
+                    </button>
+
+                    <div class="form-group">
+                        <label for="fecha_insumo">Fecha de Compra:</label>
+                        <input type="date" id="fecha_insumo" name="fecha" required value="{{ 'now'|date:'Y-m-d' }}">
+                    </div>
+
+                    <button type="submit" class="submit-compra-btn">
+                        <i class="bi bi-bag-check-fill"></i> Registrar Compra de Insumos
+                    </button>
+                </form>
+            </div>
+
+            <div id="producto-form" class="compra-form-container" style="display: none;">
+                <h2>Compra de Productos para Reventa</h2>
+                <form method="post" action="#">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="producto_proveedor">Proveedor:</label>
+                        <select id="producto_proveedor" name="proveedor" required>
+                            <option value="">--- Seleccione Proveedor ---</option>
+                            <option value="3">Proveedor C (Bebidas)</option>
+                            <option value="4">Proveedor D (Empacados)</option>
+                        </select>
+                    </div>
+
+                    <div id="productos-container">
+                        <div class="item-row">
+                            <select name="producto_id" required>
+                                <option value="">--- Seleccione Producto ---</option>
+                                <option value="10">Agua Mineral (Unidad)</option>
+                                <option value="11">Jugo de Naranja (Unidad)</option>
+                            </select>
+                            <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                            <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
+                            <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
+                        </div>
+                    </div>
+
+                    <button type="button" id="add-producto-btn" class="add-item-btn">
+                        <i class="bi bi-plus-square-fill"></i> Añadir Otro Producto
+                    </button>
+
+                    <div class="form-group">
+                        <label for="fecha_producto">Fecha de Compra:</label>
+                        <input type="date" id="fecha_producto" name="fecha" required value="{{ 'now'|date:'Y-m-d' }}">
+                    </div>
+
+                    <button type="submit" class="submit-compra-btn">
+                        <i class="bi bi-bag-check-fill"></i> Registrar Compra de Productos
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+    </section>
+
+    <script>
+        // Lógica para alternar entre formularios (Insumo/Producto)
+        window.showForm = function(formId) {
+            const forms = document.querySelectorAll('.compra-form-container');
+            const tabs = document.querySelectorAll('.tab-button');
+            
+            forms.forEach(form => form.style.display = 'none');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            document.getElementById(formId).style.display = 'block';
+            
+            // Encuentra el botón de la pestaña y añade la clase 'active'
+            let activeTab;
+            if (formId === 'insumo-form') {
+                activeTab = tabs[0];
+            } else {
+                activeTab = tabs[1];
+            }
+            activeTab.classList.add('active');
+        }
+
+        // ----------------------------------------------------
+        // Lógica de JavaScript para el Formulario Dinámico (Insumos)
+        // ----------------------------------------------------
+        
+        const insumoContainer = document.getElementById('insumos-container');
+        const addInsumoBtn = document.getElementById('add-insumo-btn');
+        
+        // Plantilla para nueva fila de Insumo (debe coincidir con la fila inicial)
+        const insumoRowTemplate = `
+            <div class="item-row">
+                <select name="insumo_id" required>
+                    <option value="">--- Seleccione Insumo ---</option>
+                    <option value="1">Harina de Trigo (kg)</option>
+                    <option value="2">Azúcar Blanca (lb)</option>
+                    <option value="3">Levadura (g)</option>
+                </select>
+                <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
+                <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
+            </div>
+        `;
+
+        addInsumoBtn.addEventListener('click', () => {
+            insumoContainer.insertAdjacentHTML('beforeend', insumoRowTemplate);
+        });
+        
+        // ----------------------------------------------------
+        // Lógica de JavaScript para el Formulario Dinámico (Productos)
+        // ----------------------------------------------------
+        
+        const productoContainer = document.getElementById('productos-container');
+        const addProductoBtn = document.getElementById('add-producto-btn');
+        
+        // Plantilla para nueva fila de Producto (debe coincidir con la fila inicial)
+        const productoRowTemplate = `
+            <div class="item-row">
+                <select name="producto_id" required>
+                    <option value="">--- Seleccione Producto ---</option>
+                    <option value="10">Agua Mineral (Unidad)</option>
+                    <option value="11">Jugo de Naranja (Unidad)</option>
+                </select>
+                <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                <input type="number" name="precio_unitario" placeholder="Precio Unitario" min="0.01" step="0.01" required class="precio-input" value="0.00">
+                <button type="button" class="remove-item-btn" onclick="removeItemRow(this)">X</button>
+            </div>
+        `;
+
+        addProductoBtn.addEventListener('click', () => {
+            productoContainer.insertAdjacentHTML('beforeend', productoRowTemplate);
+        });
+
+        // Función para eliminar filas (compartida por ambos formularios)
+        window.removeItemRow = function(button) {
+            const container = button.closest('.compra-form-container').querySelector('.item-row').parentElement;
+            
+            // Se asegura de que siempre quede al menos una fila en su respectivo contenedor
+            if (container.querySelectorAll('.item-row').length > 1) {
+                button.closest('.item-row').remove();
+            } else {
+                alert("Debe haber al menos un ítem para registrar la compra.");
+            }
+        };
+
+    </script>
+{% endblock %}

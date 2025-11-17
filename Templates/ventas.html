@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registrar Venta | Panadería J&J{% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'ventas.css' %}">
+
+    <header class="header">
+        <div class="header-title">
+            <h1>Registrar Nueva Venta</h1>
+        </div>
+    </header>
+
+    <section class="venta-area">
+        <div class="card venta-form-card">
+            <h2>Registrar Venta</h2>
+            
+            <form method="post" action="#">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="vendedor">Vendedor:</label>
+                    <select id="vendedor" name="vendedor" required>
+                        <option value="">--- Seleccione Vendedor ---</option>
+                        <option value="1">Vendedor A (Juan)</option>
+                        <option value="2">Vendedor B (María)</option>
+                    </select>
+                </div>
+                
+                <h3>Detalles del Pedido:</h3>
+                <div id="productos-container">
+                    <div class="producto-row">
+                        <select name="producto_id" required>
+                            <option value="">--- Seleccione Producto ---</option>
+                            <option value="1" data-precio="1.50">Clásico Croissant (C$1.50)</option>
+                            <option value="2" data-precio="3.50">Torta de Chocolate (C$3.50)</option>
+                            <option value="3" data-precio="5.00">Pan de Mantequilla (C$5.00)</option>
+                        </select>
+                        <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                        <span class="subtotal-display">C$1.50</span>
+                        <button type="button" class="remove-product-btn" onclick="removeProductRow(this)">X</button>
+                    </div>
+                </div>
+
+                <button type="button" id="add-product-btn" class="add-product-btn">
+                    <i class="bi bi-plus-square-fill"></i> Agregar Otro Producto
+                </button>
+
+                <div class="venta-summary">
+                    <div class="total-label">TOTAL A PAGAR:</div>
+                    <div id="total-venta" class="total-value">C$1.50</div>
+                </div>
+
+                <button type="submit" class="submit-venta-btn">
+                    <i class="bi bi-credit-card-fill"></i> Finalizar Transacción
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <script>
+        const container = document.getElementById('productos-container');
+        const addBtn = document.getElementById('add-product-btn');
+        const totalDisplay = document.getElementById('total-venta');
+        
+        // Plantilla HTML para una nueva fila (debe reflejar los datos simulados en el HTML)
+        const productRowTemplate = `
+            <div class="producto-row">
+                <select name="producto_id" required>
+                    <option value="">--- Seleccione Producto ---</option>
+                    <option value="1" data-precio="1.50">Clásico Croissant (C$1.50)</option>
+                    <option value="2" data-precio="3.50">Torta de Chocolate (C$3.50)</option>
+                    <option value="3" data-precio="5.00">Pan de Mantequilla (C$5.00)</option>
+                </select>
+                <input type="number" name="cantidad" placeholder="Cantidad" min="1" required class="cantidad-input" value="1">
+                <span class="subtotal-display">C$0.00</span>
+                <button type="button" class="remove-product-btn" onclick="removeProductRow(this)">X</button>
+            </div>
+        `;
+
+        addBtn.addEventListener('click', () => {
+            container.insertAdjacentHTML('beforeend', productRowTemplate);
+            attachRowListeners(container.lastElementChild);
+            calculateTotal();
+        });
+
+        window.removeProductRow = function(button) {
+            if (container.querySelectorAll('.producto-row').length > 1) {
+                button.closest('.producto-row').remove();
+                calculateTotal();
+            } else {
+                alert("Debe haber al menos un producto en la venta.");
+            }
+        };
+
+        function calculateRowTotal(row) {
+            const select = row.querySelector('select[name="producto_id"]');
+            const input = row.querySelector('input[name="cantidad"]');
+            const subtotalDisplay = row.querySelector('.subtotal-display');
+
+            const selectedOption = select.options[select.selectedIndex];
+            const price = parseFloat(selectedOption.getAttribute('data-precio')) || 0.00;
+            const quantity = parseInt(input.value) || 0;
+            
+            const subtotal = price * quantity;
+            subtotalDisplay.textContent = `C$${subtotal.toFixed(2)}`;
+            
+            return subtotal;
+        }
+
+        function calculateTotal() {
+            let grandTotal = 0;
+            const rows = container.querySelectorAll('.producto-row');
+            rows.forEach(row => {
+                grandTotal += calculateRowTotal(row);
+            });
+            totalDisplay.textContent = `C$${grandTotal.toFixed(2)}`;
+        }
+
+        function attachRowListeners(row) {
+            const elements = row.querySelectorAll('select, input');
+            elements.forEach(element => {
+                element.addEventListener('change', calculateTotal);
+                element.addEventListener('input', calculateTotal);
+            });
+        }
+        
+        container.querySelectorAll('.producto-row').forEach(attachRowListeners);
+        calculateTotal();
+
+    </script>
+{% endblock %}

@@ -4,180 +4,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Panadería</title>
+    <title>{% block title %}Dashboard de Panadería J&J{% endblock %}</title> 
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    
     <link rel="stylesheet" href="{% static 'base.css' %}">
-    <script src="https://unpkg.com/feather-icons"></script>
+    
+    <style>
+        /* ... (Mismo CSS de layout que ya tenías) ... */
+        html, body, .app-container { height: 100%; margin: 0; padding: 0; } 
+        .sidebar {
+            width: 250px;
+            background-color: #FFFFFF;
+            padding: 20px 0;
+            height: 100vh;
+            flex-shrink: 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+        }
+        .logo-container { text-align: center; padding: 0 20px 30px 20px; }
+        .logo-image { width: 150px; height: auto; border-radius: 8px; }
+        .nav-menu .nav-item {
+            display: flex; align-items: center; padding: 12px 20px; margin-bottom: 5px;
+            text-decoration: none; color: #666; font-size: 1rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .nav-menu .nav-item i { margin-right: 10px; font-size: 1.2rem; }
+        .nav-menu .nav-item:hover { background-color: #f0f0f0; color: #333; }
+        .nav-menu .nav-item.active {
+            background-color: #E9967A; /* Color de acento de Panadería */
+            color: white;
+            font-weight: 600;
+        }
+        .main-content {
+            flex-grow: 1; padding: 30px; background-color: #F5F5F5; overflow-y: auto;
+        }
+        .app-container { display: flex; min-height: 100vh; }
+        .logout {
+            padding: 15px 20px; color: #666; cursor: pointer; display: flex;
+            align-items: center; font-size: 0.9rem; position: absolute;
+            bottom: 0; width: 250px;
+        }
+        .logout i { margin-right: 10px; }
+    </style>
+
 </head>
 <body>
+    
     <div class="app-container">
-        <aside class="sidebar">
-            <div class="logo">
-                <i data-feather="cup-cake"></i>
-                <div class="app-name">Panadería KPL</div>
-                <div class="web-system">Web System</div>
+        <div class="sidebar d-flex flex-column">
+            <div class="logo-container">
+                <img src="{% static 'J&J.jpeg' %}" alt="Panadería J&J Logo" class="logo-image">
             </div>
-            <nav class="nav-menu">
-                <a href="#" class="nav-item active">
-                    <i data-feather="grid"></i> Dashboard
+            
+            <nav class="nav-menu flex-grow-1">
+                <a href="{% url 'dashboard' %}" class="nav-item {% if 'dashboard' in request.path %}active{% endif %}">
+                    <i class="bi bi-grid-fill"></i> Dashboard
                 </a>
-                <a href="#" class="nav-item">
-                    <i data-feather="trending-up"></i> Ventas
+                
+                <a href="{% url 'ventas' %}" class="nav-item {% if 'ventas' in request.path %}active{% endif %}">
+                    <i class="bi bi-graph-up"></i> Ventas
                 </a>
-                <a href="#" class="nav-item">
-                    <i data-feather="shopping-cart"></i> Compras
+                
+                <a href="{% url 'Compras' %}" class="nav-item {% if 'compras' in request.path %}active{% endif %}">
+                    <i class="bi bi-cart-fill"></i> Compras
                 </a>
-                <a href="#" class="nav-item">
-                    <i data-feather="settings"></i> Producción
-                </a>
-                <a href="#" class="nav-item">
-                    <i data-feather="bar-chart-2"></i> Reportes
+                
+                <a href="{% url 'produccion' %}" class="nav-item {% if 'produccion' in request.path %}active{% endif %}">
+                    <i class="bi bi-gear-fill"></i> Producción
                 </a>
             </nav>
-            <div class="logout">
-                <i data-feather="log-out"></i> Log Out
-            </div>
-        </aside>
+            
+        </div>
 
         <main class="main-content">
-            <header class="header">
-                <div class="greeting">
-                    <h1>Good Morning, Jessica!</h1>
-                    <p>Aquí está lo que está sucediendo en tu panadería hoy.</p>
-                </div>
-                <div class="actions">
-                    <select>
-                        <option>Today</option>
-                        <option>Last 7 Days</option>
-                    </select>
-                    <button class="new-order-btn">
-                        <i data-feather="plus"></i> New Order
-                    </button>
-                </div>
-            </header>
-            
-            <section class="kpi-cards">
-                <div class="card kpi-card">
-                    <div class="kpi-title">Total Sales (Today)</div>
-                    <div class="kpi-value">$1,250</div>
-                    <div class="kpi-change positive">+5.2%</div>
-                </div>
-
-                <div class="card kpi-card">
-                    <div class="kpi-title">Items Sold</div>
-                    <div class="kpi-value">142</div>
-                    <div class="kpi-change positive">+10.3%</div>
-                </div>
-
-                <div class="card kpi-card low-stock-alert">
-                    <div class="kpi-title">Low Stock Items</div>
-                    <div class="kpi-value warning">4</div>
-                    <div class="kpi-action-req">Action required</div>
-                </div>
-            </section>
-
-            <div class="dashboard-body">
-                <section class="main-stats-area">
-                    <div class="card sales-overview">
-                        <h2>Sales Overview</h2>
-                        <div class="last-days">Last 7 Days</div>
-                        <div class="total-sales-amount">$8,750.00</div>
-                        <div class="chart-placeholder"></div>
-                        <div class="chart-labels">
-                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                        </div>
-                    </div>
-
-                    <div class="card today-orders">
-                        <h2>Today's Orders</h2>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ORDER ID</th>
-                                    <th>CUSTOMER</th>
-                                    <th>STATUS</th>
-                                    <th>TOTAL</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#JJ1025</td>
-                                    <td>Ana Torres</td>
-                                    <td><span class="status preparing">Preparing</span></td>
-                                    <td>$25.50</td>
-                                </tr>
-                                <tr>
-                                    <td>#JJ1024</td>
-                                    <td>Carlos Gomez</td>
-                                    <td><span class="status ready">Ready for Pickup</span></td>
-                                    <td>$42.00</td>
-                                </tr>
-                                <tr>
-                                    <td>#JJ1023</td>
-                                    <td>Sofia Perez</td>
-                                    <td><span class="status delivered">Delivered</span></td>
-                                    <td>$15.75</td>
-                                </tr>
-                                <tr>
-                                    <td>#JJ1022</td>
-                                    <td>Luis Fernandez</td>
-                                    <td><span class="status ready">Ready for Pickup</span></td>
-                                    <td>$31.20</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section class="side-stats-area">
-                    <div class="card top-sellers">
-                        <h2>Top Sellers</h2>
-                        <ul>
-                            <li>
-                                <img src="placeholder-1.png" alt="Strawberry Cupcake">
-                                <div>Strawberry Cupcake <span>32 units sold</span></div>
-                            </li>
-                            <li>
-                                <img src="placeholder-2.png" alt="Chocolate Dream Cake">
-                                <div>Chocolate Dream Cake <span>26 units sold</span></div>
-                            </li>
-                            <li>
-                                <img src="placeholder-3.png" alt="Classic Croissant">
-                                <div>Classic Croissant <span>21 units sold</span></div>
-                            </li>
-                            <li>
-                                <img src="placeholder-4.png" alt="Blueberry Muffin">
-                                <div>Blueberry Muffin <span>18 units sold</span></div>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="card inventory-alerts">
-                        <h2>Inventory Alerts</h2>
-                        <div class="alert-item">
-                            <div>All-Purpose Flour <span class="stock-qty">5 kg left</span></div>
-                            <button class="restock-btn">Restock</button>
-                        </div>
-                        <div class="alert-item">
-                            <div>Belgian Chocolate <span class="stock-qty">2kg left</span></div>
-                            <button class="restock-btn">Restock</button>
-                        </div>
-                        <div class="alert-item">
-                            <div>Fresh Strawberries <span class="stock-qty">1 box left</span></div>
-                            <button class="restock-btn">Restock</button>
-                        </div>
-                        <div class="alert-item">
-                            <div>Vanilla Extract <span class="stock-qty">1 bottle left</span></div>
-                            <button class="restock-btn">Restock</button>
-                        </div>
-                    </div>
-                </section>
-            </div>
+            {% block content %} 
+            {% endblock %}
         </main>
     </div>
-    
-    <script>
-        // Inicializa Feather Icons para que se muestren los íconos
-        feather.replace();
-    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,2 +1,26 @@
 venv/
 *.pyc
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+.env/
+
+# Archivos de Python compilados
+_pycache_/
+*.py[cod]
+*$py.class
+
+# Archivos de entorno
+*.env
+
+# Archivos de configuración o logs
+*.log
+
+# Archivos de IDEs
+.vscode/
+.idea/
+
+.env 
+*.pyc

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+
+
+{% block content %}
+    <header class="header">
+        <div class="actions">
+            <select>
+                <option>Hoy</option>
+                <option>Últimos 7 días</option>
+            </select>
+           <a href="{% url 'ventas' %}" class="new-order-btn">
+                <i class="bi bi-plus-square-fill"></i> Nueva venta
+            </a>
+        </div>
+    </header>
+    
+    <section class="kpi-cards">
+        <div class="card kpi-card">
+            <div class="kpi-title">Total de Ventas (Hoy)</div>
+            <div class="kpi-value">C$1,250</div>
+            <div class="kpi-change positive">+5.2%</div>
+        </div>
+
+        <div class="card kpi-card">
+            <div class="kpi-title">Productos Vendidos</div>
+            <div class="kpi-value">142</div>
+            <div class="kpi-change positive">+10.3%</div>
+        </div>
+
+        <div class="card kpi-card low-stock-alert">
+            <div class="kpi-title">Insumos con Bajo Stock</div>
+            <div class="kpi-value warning">4</div>
+            <div class="kpi-action-req">Acción requerida</div>
+        </div>
+    </section>
+
+    <div class="dashboard-body">
+        <section class="main-stats-area">
+            <div class="card sales-overview">
+                <h2>Resumen de Ventas</h2>
+                <div class="last-days">Últimos 7 días</div>
+                <div class="total-sales-amount">C$9,000</div>
+                <div class="chart-placeholder"></div>
+                <div class="chart-labels">
+                    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                </div>
+            </div>
+
+            <div class="card today-orders">
+                <h2>Ventas de Hoy</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID DE VENTA</th>
+                            <th>VENDEDOR</th>
+                            <th>TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>#JJ1025</td><td>Ana Torres</td><td>C$25.50</td></tr>
+                        <tr><td>#JJ1024</td><td>Carlos Gomez</td><td>C$42.00</td></tr>
+                        <tr><td>#JJ1023</td><td>Sofia Perez</td><td>C$15.75</td></tr>
+                        <tr><td>#JJ1022</td><td>Luis Fernandez</td><td>C$31.20</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="side-stats-area">
+            <div class="card top-sellers">
+                <h2>Top Vendidos</h2>
+                <ul>
+                    <li><div>Pan de Mantequilla <span>32 unidades vendidas</span></div></li>
+                    <li><div>Pan Dulce <span>26 unidades vendidas</span></div></li>
+                    <li><div>Pastel de Chocolate <span>21 unidades vendidas</span></div></li>
+                    <li><div>Picos <span>18 unidades vendidas</span></div></li>
+                </ul>
+            </div>
+
+            <div class="card inventory-alerts">
+                <h2>Alertas de Inventario</h2>
+                <div class="alert-item"><div>Harina de Trigo <span class="stock-qty">5 kg </span></div><button class="restock-btn">Restock</button></div>
+                <div class="alert-item"><div>Chocolate Belga <span class="stock-qty">2 kg </span></div><button class="restock-btn">Restock</button></div>
+                <div class="alert-item"><div>Fresas Frescas <span class="stock-qty">1 caja </span></div><button class="restock-btn">Restock</button></div>
+                <div class="alert-item"><div>Extracto de Vainilla <span class="stock-qty">1 botella </span></div><button class="restock-btn">Restock</button></div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
