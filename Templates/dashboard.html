@@ -67,8 +67,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% if ventas_hoy %}
-                            {% for v in ventas_hoy %}
+                        {% if ventas_vendedores_hoy %}
+                            {% for v in ventas_vendedores_hoy %}
                                 <tr>
                                     <td>{{ v.vendedor }}</td>
                                     <td style="text-align:right">{{ v.unidades }}</td>

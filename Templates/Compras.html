@@ -158,17 +158,17 @@
           </tr>
         </thead>
         <tbody>
-          {% for c in compras_insumos %}
-          <tr>
-            <td>{{ c.fecha|date:"Y-m-d H:i" }}</td>
-            <td>{{ c.proveedor.nombre }}</td>
-            <td>{{ c.insumo.nombre }}</td>
-            <td>{{ c.cantidad }}</td>
-            <td>{{ c.precio_unitario }}</td>
-            <td>{{ c.cantidad|floatformat:2 }} x {{ c.precio_unitario|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
+        {% for c in compras_insumos %}
+        <tr>
+          <td>{{ c.fecha|date:"Y-m-d H:i" }}</td>
+          <td>{{ c.proveedor.nombre }}</td>
+          <td>{{ c.insumo.nombre }}</td>
+          <td>{{ c.cantidad }}</td>
+          <td>{{ c.precio_unitario }}</td>
+          <td>C${{ c.total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
       </table>
       {% else %}
       <p>No hay registros de compras de insumos.</p>
@@ -192,17 +192,17 @@
           </tr>
         </thead>
         <tbody>
-          {% for p in compras_productos %}
-          <tr>
-            <td>{{ p.fecha|date:"Y-m-d H:i" }}</td>
-            <td>{{ p.proveedor.nombre }}</td>
-            <td>{{ p.producto.nombre }}</td>
-            <td>{{ p.cantidad }}</td>
-            <td>{{ p.precio_unitario }}</td>
-            <td>{{ p.cantidad|floatformat:2 }} x {{ p.precio_unitario|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
+        {% for p in compras_productos %}
+        <tr>
+          <td>{{ p.fecha|date:"Y-m-d H:i" }}</td>
+          <td>{{ p.proveedor.nombre }}</td>
+          <td>{{ p.producto.nombre }}</td>
+          <td>{{ p.cantidad }}</td>
+          <td>{{ p.precio_unitario }}</td>
+          <td>C${{ p.total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
       </table>
       {% else %}
       <p>No hay registros de compras de productos.</p>
