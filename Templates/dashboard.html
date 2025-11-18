@@ -48,24 +48,12 @@
                 <!-- mostrar el total de ingresos de los últimos 7 días -->
                 <div class="total-sales-amount">C${{ ingresos_last7_total|floatformat:2 }}</div>
 
-                <!-- Tabla con ingresos por día (últimos 7 días) -->
-                <table id="sales-table" class="compras-table" style="margin-top:12px;">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Ingresos (C$)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sales-table-body">
-                        <!-- filas rellenadas por script -->
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th>Total</th>
-                            <th>C${{ ingresos_last7_total|floatformat:2 }}</th>
-                        </tr>
-                    </tfoot>
-                </table>
+                <!-- Gráfico de barras (Resumen de Ventas) -->
+                <div style="position:relative; width:100%; height:240px; margin-top:12px;">
+                    <canvas id="salesChart" aria-label="Resumen de ventas últimos 7 días" role="img"></canvas>
+                </div>
+                <!-- Tabla oculta para accesibilidad y compatibilidad (se mantiene la información) -->
+                <!-- Se genera dinámicamente por script y se oculta visualmente -->
             </div>
 
             <div class="card today-orders">
@@ -73,8 +61,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID DE VENTA</th>
                             <th>VENDEDOR</th>
+                            <th style="text-align:right">UNIDADES</th>
                             <th style="text-align:right">TOTAL</th>
                         </tr>
                     </thead>
@@ -82,8 +70,8 @@
                         {% if ventas_hoy %}
                             {% for v in ventas_hoy %}
                                 <tr>
-                                    <td>#{{ v.venta_id }}</td>
                                     <td>{{ v.vendedor }}</td>
+                                    <td style="text-align:right">{{ v.unidades }}</td>
                                     <td style="text-align:right">C${{ v.ingreso|floatformat:2 }}</td>
                                 </tr>
                             {% endfor %}
@@ -127,23 +115,86 @@
         </section>
     </div>
 
-    <!-- reemplazamos la gráfica por un script que rellena la tabla -->
+    <!-- Añadimos Chart.js y script para renderizar gráfico de barras y tabla oculta -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         (function(){
-            const labels = {{ sales_chart_labels_json|safe }};
-            const data = {{ sales_chart_values_json|safe }};
-            const tbody = document.getElementById('sales-table-body');
+            const rawLabels = {{ sales_chart_labels_json|safe }};
+            const rawData = {{ sales_chart_values_json|safe }};
 
-            if (!Array.isArray(labels) || !Array.isArray(data)) return;
+            if (!Array.isArray(rawLabels) || !Array.isArray(rawData)) return;
 
+            const labels = rawLabels.map(l => {
+                const d = new Date(l);
+                return isNaN(d.getTime()) ? l : d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+            });
+
+            const dataValues = rawData.map(v => (v === null || v === undefined) ? 0 : Number(v));
+
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            // Create chart
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ingresos (C$)',
+                        data: dataValues,
+                        backgroundColor: 'rgba(54, 162, 235, 0.75)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value){ return 'C$' + Number(value).toFixed(2); }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context){
+                                    const v = context.parsed.y ?? context.parsed;
+                                    return 'C$' + Number(v).toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Construir tabla oculta para accesibilidad (lector de pantalla / export)
+            const table = document.createElement('table');
+            table.id = 'sales-table';
+            table.className = 'compras-table';
+            table.style.display = 'none';
+
+            const thead = document.createElement('thead');
+            thead.innerHTML = '<tr><th>Fecha</th><th>Ingresos (C$)</th></tr>';
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
             for (let i = 0; i < labels.length; i++) {
-                const row = document.createElement('tr');
-                const d = new Date(labels[i]);
-                const dateLabel = isNaN(d.getTime()) ? labels[i] : d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
-                const val = (data[i] !== undefined && data[i] !== null) ? Number(data[i]) : 0;
-                row.innerHTML = `<td>${dateLabel}</td><td>C$${val.toFixed(2)}</td>`;
-                tbody.appendChild(row);
+                const tr = document.createElement('tr');
+                const td1 = document.createElement('td'); td1.textContent = labels[i];
+                const td2 = document.createElement('td'); td2.textContent = 'C$' + dataValues[i].toFixed(2);
+                tr.appendChild(td1); tr.appendChild(td2);
+                tbody.appendChild(tr);
             }
+            table.appendChild(tbody);
+
+            const tfoot = document.createElement('tfoot');
+            tfoot.innerHTML = '<tr><th>Total</th><th>C' + '{{ ingresos_last7_total|floatformat:2 }}' + '</th></tr>';
+            table.appendChild(tfoot);
+
+            document.querySelector('.sales-overview').appendChild(table);
         })();
     </script>
 {% endblock %}

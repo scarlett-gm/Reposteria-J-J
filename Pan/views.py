@@ -139,17 +139,20 @@ def dashboard(request):
     low_stock_count = low_stock_qs.count()
     low_stock_items = list(low_stock_qs[:4])  # máximo 4 para alertas
 
-    # --- Ventas de Hoy: agrupar por venta y calcular ingreso por venta ---
+    # --- Ventas de Hoy: total vendido por vendedor (hoy) ---
     detalles_today = DetalleVenta.objects.filter(venta__fecha_hora__date=today)
-    ventas_hoy_qs = detalles_today.values('venta_id', 'venta__vendedor__nombre').annotate(
-        ingreso_venta=Sum(line_total)
-    ).order_by('-ingreso_venta')
+    # Agrupar por vendedor y sumar ingresos y unidades vendidas durante el día
+    ventas_hoy_qs = detalles_today.values('venta__vendedor__id', 'venta__vendedor__nombre').annotate(
+        ingreso_vendedor=Sum(line_total),
+        total_unidades=Sum('cantidad')
+    ).order_by('-ingreso_vendedor')
 
     ventas_hoy = [
         {
-            'venta_id': item['venta_id'],
-            'vendedor': item['venta__vendedor__nombre'] or '',
-            'ingreso': item['ingreso_venta'] or Decimal('0.00')
+            'vendedor_id': item.get('venta__vendedor__id'),
+            'vendedor': item.get('venta__vendedor__nombre') or '',
+            'ingreso': item.get('ingreso_vendedor') or Decimal('0.00'),
+            'unidades': int(item.get('total_unidades') or 0)
         }
         for item in ventas_hoy_qs
     ]
