@@ -34,6 +34,7 @@ def ventas(request):
                 'error': 'Seleccione un vendedor.'
             })
 
+        # Construir diccionario con la cantidad requerida por producto (sumar filas duplicadas)
         required = {}
         for i, pid in enumerate(producto_ids):
             if not pid:
@@ -53,28 +54,33 @@ def ventas(request):
                 'error': 'Agregue al menos un producto con cantidad válida.'
             })
 
+        # Validar stock antes de crear la venta (y usar bloqueo para concurrencia)
         with transaction.atomic():
             productos_objs = Producto.objects.select_for_update().filter(pk__in=required.keys())
             prod_map = {p.id: p for p in productos_objs}
+
             insuficientes = []
             for pid, qty in required.items():
                 p = prod_map.get(int(pid))
                 disponible = Decimal(p.stock or 0) if p else Decimal('0')
                 if disponible < Decimal(qty):
                     insuficientes.append({
+                        'producto_id': pid,
                         'nombre': p.nombre if p else f'ID {pid}',
                         'disponible': float(disponible),
                         'requerido': qty
                     })
 
             if insuficientes:
+                # Si falta stock en al menos un producto, cancelar todo y avisar
                 return render(request, 'ventas.html', {
                     'vendedores': vendedores,
                     'productos': productos,
-                    'error': 'Stock insuficiente para completar la venta.',
+                    'error': 'Stock insuficiente para completar la venta. No se realizó ningún registro.',
                     'insuficientes': insuficientes
                 })
 
+            # Todo OK: crear Venta y DetalleVenta, y actualizar stock (ya tenemos bloqueo)
             venta = Venta.objects.create(vendedor_id=vendedor_id)
             for pid, qty in required.items():
                 DetalleVenta.objects.create(venta=venta, producto_id=pid, cantidad=qty)
@@ -192,8 +198,17 @@ def produccion(request):
 
         try:
             cantidad = int(cantidad_raw)
-        except Exception:
+        except (TypeError, ValueError):
             cantidad = 0
+
+        # validar que la cantidad sea >= 1
+        if not producto_id or cantidad < 1:
+            return render(request, 'produccion.html', {
+                'productos_pan': productos_pan,
+                'error': 'La cantidad debe ser al menos 1.',
+                'selected_product_id': int(producto_id) if producto_id else None,
+                'cantidad_inicial': cantidad_raw or ''
+            })
 
         if fecha_str:
             try:
@@ -203,9 +218,6 @@ def produccion(request):
                 fecha_dt = timezone.now()
         else:
             fecha_dt = timezone.now()
-
-        if not producto_id or cantidad <= 0:
-            return render(request, 'produccion.html', {'productos_pan': productos_pan, 'error': 'Producto o cantidad inválida.'})
 
         producto_insumos = ProductoInsumo.objects.filter(producto_id=producto_id).select_related('insumo')
         required = {}
@@ -248,4 +260,30 @@ def produccion(request):
 
         return redirect('produccion')
 
-    return render(request, 'produccion.html', {'productos_pan': productos_pan})
+    # --- Preparar lista de las últimas 10 producciones con coste calculado ---
+    producciones_qs = Produccion.objects.select_related('producto').order_by('-fecha_hora')[:10]
+    # obtener todos los product_ids presentes y traer sus recetas
+    product_ids = [p.producto_id for p in producciones_qs]
+    receta_qs = ProductoInsumo.objects.filter(producto_id__in=product_ids).select_related('insumo')
+    receta_map = {}
+    for pi in receta_qs:
+        receta_map.setdefault(pi.producto_id, []).append(pi)
+
+    producciones_recientes = []
+    for prod in producciones_qs:
+        # Coste total calculado como: cantidad_producida * producto.costo
+        producto_obj = prod.producto
+        precio_producto = Decimal(getattr(producto_obj, 'costo', 0) or 0)
+        try:
+            costo_total = Decimal(prod.cantidad) * precio_producto
+        except Exception:
+            costo_total = Decimal('0')
+
+        producciones_recientes.append({
+            'fecha': prod.fecha_hora,
+            'producto_nombre': prod.producto.nombre if prod.producto else '',
+            'cantidad': prod.cantidad,
+            'costo_total': costo_total,
+        })
+
+    return render(request, 'produccion.html', {'productos_pan': productos_pan, 'producciones_recientes': producciones_recientes})

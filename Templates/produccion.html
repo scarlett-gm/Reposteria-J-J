@@ -54,6 +54,37 @@
         </div>
     </section>
 
+    <!-- Tabla: últimas 10 producciones -->
+    <section class="produccion-list-area" style="max-width:900px;margin:24px auto;">
+        <div class="card">
+            <h3 style="margin:16px">Últimas 10 Producciones</h3>
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:1px solid #eaeaea;">
+                        <th style="text-align:left;padding:10px">Fecha</th>
+                        <th style="text-align:left;padding:10px">Producto</th>
+                        <th style="text-align:right;padding:10px">Cantidad</th>
+                        <th style="text-align:right;padding:10px">Coste total (C$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if producciones_recientes %}
+                        {% for p in producciones_recientes %}
+                            <tr style="border-bottom:1px solid #f7f7f7;">
+                                <td style="padding:10px">{{ p.fecha|date:"Y-m-d H:i" }}</td>
+                                <td style="padding:10px">{{ p.producto_nombre }}</td>
+                                <td style="padding:10px;text-align:right">{{ p.cantidad }}</td>
+                                <td style="padding:10px;text-align:right">C${{ p.costo_total|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="4" style="padding:12px">No hay producciones registradas.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    
     <script>
         function loadRecipe() {
             const select = document.getElementById('producto_a_producir');
