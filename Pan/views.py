@@ -6,6 +6,7 @@ from .models import (
 )
 from django.utils import timezone
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from django.db import transaction
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.db.models.functions import TruncDate
@@ -81,7 +82,9 @@ def ventas(request):
                 })
 
             # Todo OK: crear Venta y DetalleVenta, y actualizar stock (ya tenemos bloqueo)
-            venta = Venta.objects.create(vendedor_id=vendedor_id)
+            # usar hora local Centroamérica (UTC-6) al crear la venta
+            venta = Venta.objects.create(vendedor_id=vendedor_id, fecha_hora=timezone.now())
+
             for pid, qty in required.items():
                 DetalleVenta.objects.create(venta=venta, producto_id=pid, cantidad=qty)
                 p = prod_map.get(int(pid))
@@ -170,10 +173,110 @@ def dashboard(request):
     return render(request, 'dashboard.html', context)
 
 def Compras(request):
-    line_total_expr = ExpressionWrapper(F('cantidad') * F('precio_unitario'), output_field=DecimalField(max_digits=18, decimal_places=2))
-    compras_insumos = CompraInsumo.objects.select_related('proveedor', 'insumo').annotate(total=line_total_expr).order_by('-fecha')[:200]
-    compras_productos = ProductoProveedor.objects.select_related('proveedor', 'producto').annotate(total=line_total_expr).order_by('-fecha')[:200]
+    """
+    Muestra página de Compras con tablas. Anota 'total' = cantidad * precio_unitario
+    para compras de insumos y compras de productos.
+    También procesa los formularios POST para registrar Compras de Insumos o Productos.
+    """
+    # --- Procesar POST (compra de insumos o compra de productos) ---
+    if request.method == 'POST':
+        fecha_str = request.POST.get('fecha')
+        # parsear fecha (input type="date")
+        if fecha_str:
+            try:
+                fecha_date = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+                now_local = timezone.localtime()
+                fecha_dt = timezone.make_aware(datetime.combine(fecha_date, now_local.time()))
+            except Exception:
+                fecha_dt = timezone.now()
+        else:
+            fecha_dt = timezone.now()
 
+        # Comprar Insumos
+        insumo_ids = request.POST.getlist('insumo_id')
+        if insumo_ids and any(i for i in insumo_ids):
+            proveedor_id = request.POST.get('proveedor')
+            cantidades = request.POST.getlist('cantidad')
+            precios = request.POST.getlist('precio_unitario')
+
+            with transaction.atomic():
+                for i, insumo_id in enumerate(insumo_ids):
+                    if not insumo_id:
+                        continue
+                    try:
+                        cantidad = Decimal(cantidades[i]) if i < len(cantidades) and cantidades[i] else Decimal('0')
+                        precio = Decimal(precios[i]) if i < len(precios) and precios[i] else Decimal('0')
+                    except Exception:
+                        continue
+
+                    CompraInsumo.objects.create(
+                        proveedor_id=proveedor_id,
+                        insumo_id=insumo_id,
+                        cantidad=cantidad,
+                        precio_unitario=precio,
+                        fecha=fecha_dt
+                    )
+
+                    # actualizar stock de insumo
+                    try:
+                        insumo_obj = Insumo.objects.select_for_update().get(pk=insumo_id)
+                        insumo_obj.stock = (insumo_obj.stock or Decimal('0')) + cantidad
+                        insumo_obj.save(update_fields=['stock'])
+                    except Insumo.DoesNotExist:
+                        pass
+
+            return redirect('Compras')
+
+        # Comprar Productos/Bebidas
+        producto_ids = request.POST.getlist('producto_id')
+        if producto_ids and any(p for p in producto_ids):
+            proveedor_id = request.POST.get('proveedor')
+            cantidades = request.POST.getlist('cantidad')
+            precios = request.POST.getlist('precio_unitario')
+
+            with transaction.atomic():
+                for i, producto_id in enumerate(producto_ids):
+                    if not producto_id:
+                        continue
+                    try:
+                        cantidad = Decimal(cantidades[i]) if i < len(cantidades) and cantidades[i] else Decimal('0')
+                        precio = Decimal(precios[i]) if i < len(precios) and precios[i] else Decimal('0')
+                    except Exception:
+                        continue
+
+                    ProductoProveedor.objects.create(
+                        proveedor_id=proveedor_id,
+                        producto_id=producto_id,
+                        cantidad=cantidad,
+                        precio_unitario=precio,
+                        fecha=fecha_dt
+                    )
+
+                    # actualizar stock del producto
+                    try:
+                        producto_obj = Producto.objects.select_for_update().get(pk=producto_id)
+                        producto_obj.stock = (producto_obj.stock or Decimal('0')) + cantidad
+                        producto_obj.save(update_fields=['stock'])
+                    except Producto.DoesNotExist:
+                        pass
+
+            return redirect('Compras')
+
+    # --- GET: preparar datos para mostrar las tablas y selects ---
+    line_total_expr = ExpressionWrapper(
+        F('cantidad') * F('precio_unitario'),
+        output_field=DecimalField(max_digits=18, decimal_places=2)
+    )
+
+    compras_insumos = CompraInsumo.objects.select_related('proveedor', 'insumo') \
+        .annotate(total=line_total_expr) \
+        .order_by('-fecha')[:200]
+
+    compras_productos = ProductoProveedor.objects.select_related('proveedor', 'producto') \
+        .annotate(total=line_total_expr) \
+        .order_by('-fecha')[:200]
+
+    # proveedores e items para los selects (si tu template los usa)
     proveedores_insumos = Proveedor.objects.filter(tipo_proveedor='INSUMOS').order_by('nombre')
     proveedores_bebidas = Proveedor.objects.filter(tipo_proveedor='BEBIDAS').order_by('nombre')
     insumos = Insumo.objects.order_by('nombre')
